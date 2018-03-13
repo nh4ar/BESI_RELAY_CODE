@@ -9,6 +9,7 @@ import sys
 import rawADC
 import numpy
 from scipy import ndimage
+import os
 
 def doorSensor(startDateTime, hostIP, BASE_PORT):
 
@@ -114,6 +115,12 @@ def doorSensor(startDateTime, hostIP, BASE_PORT):
 
 			if rawlineCount==currLine:
 
+				#delete the previous rawADCFile
+				try:
+				    os.remove(rawADCFileName)
+				except OSError:
+				    pass
+
 				startDateTime = rawADC.rawADC_startDateTime
 				startTimeDT = str(rawADC.rawADC_Time)
 				doorFileName = BASE_PATH+"Relay_Station{0}/Door/Door{1}.txt".format(BASE_PORT, startTimeDT)
@@ -181,43 +188,43 @@ def doorProcessing(timeDelta, rawDoorData):
 
 	# print doorData
 
-	doorCH1 = doorData[0:10]
-	doorCH2 = doorData[10:20]
+	# doorCH1 = doorData[0:10]
+	# doorCH2 = doorData[10:20]
 
-	# print 'CH1: ', doorCH1, 'CH2: ', doorCH2 
+	# # print 'CH1: ', doorCH1, 'CH2: ', doorCH2 
 
-	for i in range(1,len(doorCH1)): 
+	# for i in range(1,len(doorCH1)): 
 
-		if direction == 0: # no direction detected yet
-			if ( doorCH1[i] - doorCH1[i-1] ) == 1: # if ch1 is up
-				if doorCH2[i] == 0: #ch1 up but not ch2
-					for j in range(i+1,len(doorCH2)): #check next samples of ch2 
-						if doorCH2[j] == 1:
-							direction = 1
-							break
+	# 	if direction == 0: # no direction detected yet
+	# 		if ( doorCH1[i] - doorCH1[i-1] ) == 1: # if ch1 is up
+	# 			if doorCH2[i] == 0: #ch1 up but not ch2
+	# 				for j in range(i+1,len(doorCH2)): #check next samples of ch2 
+	# 					if doorCH2[j] == 1:
+	# 						direction = 1
+	# 						break
 
-				else:
-					direction = -1
-		else: # if direction is detected -> end the loop
-			break
+	# 			else:
+	# 				direction = -1
+	# 	else: # if direction is detected -> end the loop
+	# 		break
 
-	# PRINT DIRECTION
-	if direction == 1:
-		print "\n"
-		print "Move to ROOM #2"
-		print "\n"
+	# # PRINT DIRECTION
+	# if direction == 1:
+	# 	print "\n"
+	# 	print "Move to ROOM #2"
+	# 	print "\n"
 
-	if direction == -1:
-		print "\n"
-		print "Move to ROOM #1"
-		print "\n"
+	# if direction == -1:
+	# 	print "\n"
+	# 	print "Move to ROOM #1"
+	# 	print "\n"
 
-	if direction != 0: # there's a doorway event
+	# if direction != 0: # there's a doorway event
 
-		with open(directionFileName, "a") as directionFile:
-			directionFile.write("%0.2f," %( timeDelta ))
-			directionFile.write("%d\n" %( direction))
-		directionFile.close()
+	# 	with open(directionFileName, "a") as directionFile:
+	# 		directionFile.write("%0.2f," %( timeDelta ))
+	# 		directionFile.write("%d\n" %( direction))
+	# 	directionFile.close()
 
 
 	return doorData
