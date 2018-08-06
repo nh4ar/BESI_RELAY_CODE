@@ -1,4 +1,4 @@
 BaseStation_IP=191.168.0.157
-relayStation_ID=10004
-Wearable=Pixie
-PebbleFolder=r102
+relayStation_ID=10044
+Wearable=Memini
+PebbleFolder=r110

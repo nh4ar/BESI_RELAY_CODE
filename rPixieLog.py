@@ -38,7 +38,7 @@ def calcTeagerPerEpoch(inputList,epochInSecs=30):
 
 
 
-def pixieLog(startDateTime,hostIP,BASE_PORT):
+def pixieLog(startDateTime,hostIP,BASE_PORT, pebbleFolder):
     
     global agiStatus
     global agiType
@@ -54,7 +54,8 @@ def pixieLog(startDateTime,hostIP,BASE_PORT):
     receiver = context.socket(zmq.PULL)
     receiver.bind("tcp://127.0.0.1:5000")
 
-    file_path = "/media/card/rtest/" #os.environ.get('PEBBLE_DATA_LOC')
+    # file_path = "/media/card/rtest/" #os.environ.get('PEBBLE_DATA_LOC')
+    file_path = "/media/card/" + pebbleFolder + "/"
     if file_path is None:
         print("DID NOT FIND PEBBLE_DATA_LOC")
         print(os.environ)
@@ -65,6 +66,8 @@ def pixieLog(startDateTime,hostIP,BASE_PORT):
 
     newFile = True
     iterFile = 0
+    fileSize_min = 60 #min
+    fileSize = fileSize_min*60*50 #min * seconds * sampling_rate
     merr = 0
 #    print("merr = {}".format(merr))
 
@@ -81,7 +84,7 @@ def pixieLog(startDateTime,hostIP,BASE_PORT):
             data = msgpack.unpackb(receiver.recv())
             packet_count = int(len(data)/208)
             #print("got {} packets".format(packet_count))
-            if iterFile>=(50*60*60): newFile = True
+            if iterFile>=(fileSize): newFile = True
             
             if (packet_count>0 & packet_count<10):
                 timestamp = unpack_from('Q',data,208*0)
@@ -157,7 +160,7 @@ def pixieLog(startDateTime,hostIP,BASE_PORT):
                     magi = []
                 except:
                     print("Function Error!")
-                print("teagerValue = {}".format(teagerValue))
+                #print("teagerValue = {}".format(teagerValue))
 
             
             if iterations==10:
@@ -167,9 +170,12 @@ def pixieLog(startDateTime,hostIP,BASE_PORT):
                     pixieValue = reduce(lambda x,y:x+y,tgr)
                 else:
                     pixieValue = teagerValue
-                print pixieValue
+                # print pixieValue
                 pixieMessage.append(str("{0:.3f}".format(pixieValue)))
-                startDateTime = rNTPTime.sendUpdate(server_address, pixieMessage, 5)      
+
+                startDateTime = rNTPTime.sendUpdate(server_address, pixieMessage, 5)     
+
+
                 iterations = 0
                 if pixieValue>50:
                     agiType = 1
@@ -179,7 +185,11 @@ def pixieLog(startDateTime,hostIP,BASE_PORT):
                     agiMessage.append("Agitation")
                     agiMessage.append(str(agiType))
                     agiMessage.append(str("{0:.3f}".format(pixieValue)))
-                    startDateTime = rNTPTime.sendUpdate(server_address, agiMessage, 5)
+
+
+                    # startDateTime = rNTPTime.sendUpdate(server_address, agiMessage, 5)
+
+
                     tgr = []
                     pixieValue = 0
                 else:

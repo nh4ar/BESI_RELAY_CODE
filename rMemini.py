@@ -39,6 +39,11 @@ file_path = "/media/card/memini/"
 #
 meminifilename = str(file_path) + "memini_data.csv"
 
+if not os.path.exists(file_path):
+	os.mkdir(file_path)
+	# with open(meminifilename, "w") as meminifile:
+		
+
 global agiType
 global agiStatus
 global agiIndx
@@ -432,6 +437,7 @@ def meminiSense(startDateTime,hostIP,BASE_PORT,streaming=True,logging=True):
 			appUUID = APP_UUID[:]
 
 			print "initializing Pebble connection.."
+			# print pebble.send_and_read(AppRunState(data=AppRunStateRequest()), AppRunState).data.uuid
 
 			while running:
 				try:
@@ -462,7 +468,8 @@ def meminiSense(startDateTime,hostIP,BASE_PORT,streaming=True,logging=True):
 					mainMsgService.register_handler("appmessage", mainMsgHandler.message_received_event)
 
 					break
-				except:
+				except Exception as err:
+					print err
 					print "Error Initializing Services, retrying.."
 					pebble.run_async()
 					continue
@@ -483,4 +490,8 @@ def meminiSense(startDateTime,hostIP,BASE_PORT,streaming=True,logging=True):
 			print("Pebble Disconnected!")
 			time.sleep(30)
 			continue
+
+		except Exception as err:
+			print err
+			pass
 			# exit(2)

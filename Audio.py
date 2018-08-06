@@ -2,6 +2,7 @@ from gpio_utils import *
 from Constants import *
 import rNTPTime
 import socket
+import os
 import time
 import csv
 import subprocess
@@ -10,6 +11,8 @@ from pyAudioAnalysis import audioFeatureExtraction
 import rawADC
 
 def audioFeatureExt(startDateTime, hostIP, BASE_PORT):
+
+	debugMode = False
 
 	time.sleep((LOOP_DELAY * UPDATE_DELAY))
 
@@ -30,22 +33,45 @@ def audioFeatureExt(startDateTime, hostIP, BASE_PORT):
 	startTimeDT = rNTPTime.stripDateTime(startDateTime)
 	audioFeatureFileName = BASE_PATH+"Relay_Station{0}/AudioF/AudioF{1}.txt".format(BASE_PORT, startTimeDT)
 
-	with open(audioFeatureFileName, "w") as audioFeatureFile:
-		audioFeatureFile.write(startDateTime+"\n")
-		audioFeatureFile.write("Deployment ID: Unknown, Relay Station ID: {}\n".format(BASE_PORT))
-		audioFeatureFile.write("Timestamp, ZCR, Energy, Energy Entropy, Spectral Centroid, Spectral Spread, Spectral Entropy, Spectral Flux, Spectral Rolloff, MFCC0, MFCC1, MFCC2, MFCC3, MFCC4, MFCC5, MFCC6, MFCC7, MFCC8, MFCC9, MFCC10, MFCC11, MFCC12, ChromaVector1, , ChromaVector2, ChromaVector3, ChromaVector4, ChromaVector5, ChromaVector6, ChromaVector7, ChromaVector8, ChromaVector9, ChromaVector10, ChromaVector11, ChromaVector12, ChromaDeviation\n")
-		#audioFeatureFile.write("Timestamp, ZCR, Energy, Energy Entropy, Spectral Centroid, Spectral Spread, Spectral Entropy, Spectral Flux, Spectral Rolloff, MFCC0, MFCC1, MFCC2, MFCC3, MFCC4, MFCC5, MFCC6, MFCC7, MFCC8, MFCC9, MFCC10, MFCC11, MFCC12, ChromaVector1, , ChromaVector2, ChromaVector3, ChromaVector4, ChromaVector5, ChromaVector6, ChromaVector7, ChromaVector8, ChromaVector9, ChromaVector10, ChromaVector11, ChromaVector12, ChromaDeviation\n")
-	audioFeatureFile.close()
+	# with open(audioFeatureFileName, "w") as audioFeatureFile:
+	# 	audioFeatureFile.write(startDateTime+"\n")
+	# 	audioFeatureFile.write("Deployment ID: Unknown, Relay Station ID: {}\n".format(BASE_PORT))
+	# 	audioFeatureFile.write("Timestamp, ZCR, Energy, Energy Entropy, Spectral Centroid, Spectral Spread, Spectral Entropy, Spectral Flux, Spectral Rolloff, MFCC0, MFCC1, MFCC2, MFCC3, MFCC4, MFCC5, MFCC6, MFCC7, MFCC8, MFCC9, MFCC10, MFCC11, MFCC12, ChromaVector1, ChromaVector2, ChromaVector3, ChromaVector4, ChromaVector5, ChromaVector6, ChromaVector7, ChromaVector8, ChromaVector9, ChromaVector10, ChromaVector11, ChromaVector12, ChromaDeviation\n")
+	# 	#audioFeatureFile.write("Timestamp, ZCR, Energy, Energy Entropy, Spectral Centroid, Spectral Spread, Spectral Entropy, Spectral Flux, Spectral Rolloff, MFCC0, MFCC1, MFCC2, MFCC3, MFCC4, MFCC5, MFCC6, MFCC7, MFCC8, MFCC9, MFCC10, MFCC11, MFCC12, ChromaVector1, , ChromaVector2, ChromaVector3, ChromaVector4, ChromaVector5, ChromaVector6, ChromaVector7, ChromaVector8, ChromaVector9, ChromaVector10, ChromaVector11, ChromaVector12, ChromaDeviation\n")
+	# audioFeatureFile.close()
 
 	currLine = startLine #current line to read/write from
 
 	while True:
-
 		startTimeDT = rNTPTime.stripDateTime(startDateTime)
-		rawADCFileName = BASE_PATH+"Relay_Station{0}/rawADC/rawADC{1}.txt".format(BASE_PORT, startTimeDT)
+
+		rawADCLocation = BASE_PATH+"Relay_Station{0}/rawADC/".format(BASE_PORT)
+		files = os.walk(rawADCLocation).next()[2] #BASE_PATH = /media/card/
+		files.sort() #previous file first
 
 		rawlineCount = 0
-		for line in open(rawADCFileName).xreadlines(  ): rawlineCount += 1
+
+		if (len(files) > 0) : #not an empty folder
+
+			rawADC_timeStamp = files[0][6:-4] # read timeStamp on rawADC filename 
+			rawADCFileName = BASE_PATH + "Relay_Station{0}/rawADC/".format(BASE_PORT) + "/" + files[0]
+
+			#create new audio feature file
+			audioFeatureFileName = BASE_PATH+"Relay_Station{0}/AudioF/AudioF{1}.txt".format(BASE_PORT, rawADC_timeStamp)
+			if not os.path.exists(audioFeatureFileName):
+				with open(audioFeatureFileName, "w") as audioFeatureFile:
+					audioFeatureFile.write(startDateTime+"\n")
+					audioFeatureFile.write("Deployment ID: Unknown, Relay Station ID: {}\n".format(BASE_PORT))
+					audioFeatureFile.write("Timestamp, ZCR, Energy, Energy Entropy, Spectral Centroid, Spectral Spread, Spectral Entropy, Spectral Flux, Spectral Rolloff, MFCC0, MFCC1, MFCC2, MFCC3, MFCC4, MFCC5, MFCC6, MFCC7, MFCC8, MFCC9, MFCC10, MFCC11, MFCC12, ChromaVector1, ChromaVector2, ChromaVector3, ChromaVector4, ChromaVector5, ChromaVector6, ChromaVector7, ChromaVector8, ChromaVector9, ChromaVector10, ChromaVector11, ChromaVector12, ChromaDeviation\n")
+
+
+			if debugMode: print "reading lines from " + files[0]
+			f = open(BASE_PATH + "Relay_Station{0}/rawADC/".format(BASE_PORT) + "/" + files[0], "r") 
+			rawlineCount = 0
+			for line in f.xreadlines(  ): rawlineCount += 1
+			f.close()
+			if debugMode: print "rawlineCount =" + str(rawlineCount)
+			if debugMode: print "currLine =" + str(currLine)
 		# close(rawADCFileName)
 
 		# print "2017-08-07 %d%d:%d%d:%d%d.000" %(1,1,1,1,1,1)
@@ -54,7 +80,9 @@ def audioFeatureExt(startDateTime, hostIP, BASE_PORT):
 
 		# print "rawADC Size = ", rawlineCount, ", AudioFeature Size = ",currLine, ", rawADCTime = ", rawADC.rawADC_Time, ", AudioFileTime = ", startTimeDT
 
+		# if False:
 		if rawlineCount > currLine:
+			rawADCFileName = BASE_PATH + "Relay_Station{0}/rawADC/".format(BASE_PORT) + "/" + files[0]
 			with open(rawADCFileName, "r") as rawADCFile:
 				rawADC_string = rawADCFile.readlines()[currLine]
 			# rawADCFile.close()
@@ -113,31 +141,56 @@ def audioFeatureExt(startDateTime, hostIP, BASE_PORT):
 				iterations += 1
 
 				currLine = currLine + 1 #move to the next Audio line
-
+				if debugMode: print "AudioFeature Extracted" 
 
 		#if finish audioFeature Ext + rawADC creates a new file
-		elif rawADC.rawADC_Time != startTimeDT:
+		elif (len(files) >= 2) : #has new rawADC file + rawlineCount == or < currLine
+ 		# elif rawADC.rawADC_Time != startTimeDT:
+ 			time.sleep(1)
 
 			rawlineCount = 0
 			for line in open(rawADCFileName).xreadlines(  ): rawlineCount += 1
 
 			if rawlineCount==currLine:
 
-				startDateTime = rawADC.rawADC_startDateTime
-				startTimeDT = str(rawADC.rawADC_Time)
-				audioFeatureFileName = BASE_PATH+"Relay_Station{0}/AudioF/AudioF{1}.txt".format(BASE_PORT, startTimeDT)
-
-				# create new audioFeatureFile
-				with open(audioFeatureFileName, "w") as audioFeatureFile:
-					audioFeatureFile.write(startDateTime+"\n")
-					audioFeatureFile.write("Deployment ID: Unknown, Relay Station ID: {}\n".format(BASE_PORT))
-					audioFeatureFile.write("Timestamp, ZCR, Energy, Energy Entropy, Spectral Centroid, Spectral Spread, Spectral Entropy, Spectral Flux, Spectral Rolloff, MFCC0, MFCC1, MFCC2, MFCC3, MFCC4, MFCC5, MFCC6, MFCC7, MFCC8, MFCC9, MFCC10, MFCC11, MFCC12, ChromaVector1, , ChromaVector2, ChromaVector3, ChromaVector4, ChromaVector5, ChromaVector6, ChromaVector7, ChromaVector8, ChromaVector9, ChromaVector10, ChromaVector11, ChromaVector12, ChromaDeviation\n")
-				audioFeatureFile.close()
+				if debugMode: print "finished reading "+ files[0]+", deleting file now.."
+				os.remove(rawADCFileName)
 				currLine = startLine
-				# print "new File Created"
 
-				#update new rawADC filename to open
-				rawADCFileName = BASE_PATH+"Relay_Station{0}/rawADC/rawADC{1}.txt".format(BASE_PORT, startTimeDT)
+				# files = os.walk(rawADCLocation).next()[2] #BASE_PATH = /media/card/
+				# files.sort() #previous file first
+
+				# rawADC_timeStamp = files[0][6:-4] # read timeStamp on rawADC filename 
+
+				#create new audio feature file
+				# audioFeatureFileName = BASE_PATH+"Relay_Station{0}/AudioF/AudioF{1}.txt".format(BASE_PORT, rawADC_timeStamp)
+				# if not os.path.exists(audioFeatureFileName):
+				# 	with open(audioFeatureFileName, "w") as audioFeatureFile:
+				# 		audioFeatureFile.write(startDateTime+"\n")
+				# 		audioFeatureFile.write("Deployment ID: Unknown, Relay Station ID: {}\n".format(BASE_PORT))
+				# 		audioFeatureFile.write("Timestamp, ZCR, Energy, Energy Entropy, Spectral Centroid, Spectral Spread, Spectral Entropy, Spectral Flux, Spectral Rolloff, MFCC0, MFCC1, MFCC2, MFCC3, MFCC4, MFCC5, MFCC6, MFCC7, MFCC8, MFCC9, MFCC10, MFCC11, MFCC12, ChromaVector1, ChromaVector2, ChromaVector3, ChromaVector4, ChromaVector5, ChromaVector6, ChromaVector7, ChromaVector8, ChromaVector9, ChromaVector10, ChromaVector11, ChromaVector12, ChromaDeviation\n")
+
+				time.sleep(1)
+
+		elif (len(files) == 1) and (currLine==rawlineCount) :
+						if debugMode: print "waiting for new data..."
+						# if debugMode: print "length of rawX = " + str(len(rawX))
+						time.sleep(1)
+				# startDateTime = rawADC.rawADC_startDateTime
+				# startTimeDT = str(rawADC.rawADC_Time)
+				# audioFeatureFileName = BASE_PATH+"Relay_Station{0}/AudioF/AudioF{1}.txt".format(BASE_PORT, startTimeDT)
+
+				# # create new audioFeatureFile
+				# with open(audioFeatureFileName, "w") as audioFeatureFile:
+				# 	audioFeatureFile.write(startDateTime+"\n")
+				# 	audioFeatureFile.write("Deployment ID: Unknown, Relay Station ID: {}\n".format(BASE_PORT))
+				# 	audioFeatureFile.write("Timestamp, ZCR, Energy, Energy Entropy, Spectral Centroid, Spectral Spread, Spectral Entropy, Spectral Flux, Spectral Rolloff, MFCC0, MFCC1, MFCC2, MFCC3, MFCC4, MFCC5, MFCC6, MFCC7, MFCC8, MFCC9, MFCC10, MFCC11, MFCC12, ChromaVector1, , ChromaVector2, ChromaVector3, ChromaVector4, ChromaVector5, ChromaVector6, ChromaVector7, ChromaVector8, ChromaVector9, ChromaVector10, ChromaVector11, ChromaVector12, ChromaDeviation\n")
+				# audioFeatureFile.close()
+				# currLine = startLine
+				# # print "new File Created"
+
+				# #update new rawADC filename to open
+				# rawADCFileName = BASE_PATH+"Relay_Station{0}/rawADC/rawADC{1}.txt".format(BASE_PORT, startTimeDT)
 
 		if iterations>=UPDATE_LENGTH:
 			sumAudio = sumAudio/iterations
