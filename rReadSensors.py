@@ -61,12 +61,12 @@ for line in fconfig:
 		except:
 			print "Error finding Pebble Mode"
 
-		if IS_PIXIE == True:
-			try:
-				if splitLine[0] == "PebbleFolder":
-					PebbleFolder = str(splitLine[1]).rstrip()
-			except:
-				print "Error reading Pebble Folder"
+		# if IS_PIXIE == True:
+		try:
+			if splitLine[0] == "PebbleFolder":
+				PebbleFolder = str(splitLine[1]).rstrip()
+		except:
+			print "Error reading Pebble Folder"
 
 
 
@@ -107,6 +107,10 @@ if not os.path.exists(baseFolder + "rawPebble"): #for Pebble data that's done wi
 if not os.path.exists(baseFolder + "PebbleFeature"): #for Pebble data that's done with featExt
 	os.mkdir(baseFolder + "PebbleFeature")
 
+if IS_PIXIE == True:
+	if not os.path.exists(BASE_PATH + PebbleFolder): #for Pebble data that's done with featExt
+		os.mkdir(BASE_PATH + PebbleFolder)
+
 print ("Default Settings:")
 print ("Base Station IP Address: {0}".format(BaseStation_IP2))
 print ("Relay Station ID: {0}".format(relayStation_ID2))
@@ -124,14 +128,14 @@ while True:
 	
 	# Testing relay w/o basestation
 	if NO_BASESTATION_TEST:
-		startDateTime = "2018-08-04 22:22:22.000"
+		startDateTime = "2018-08-21 00:00:00.000"
 		USE_LIGHT = False
-		USE_ADC = True
+		USE_ADC = False
 		USE_WEATHER = False
-		USE_AUDIO = True
+		USE_AUDIO = False
 		USE_DOOR = False
 
-		IS_PIXIE = False
+		IS_PIXIE = True
 		IS_MEMINI = False
 
 	else:
@@ -175,7 +179,7 @@ while True:
 			USE_ADC = True
 			USE_WEATHER = True
 			USE_AUDIO = True
-			USE_DOOR = False
+			USE_DOOR = False #door got moved to rawADC.py thread
 
 			# USE_LIGHT = False
 			# USE_ADC = False
@@ -224,13 +228,14 @@ while True:
 			meminiThread = threading.Thread(target=meminiSense, args=(startDateTime,hostIP,BASE_PORT,Lock()))
 			meminiThread.setDaemon(True)
 
-		if IS_PIXIE:         
-			# Pebble - Pixie Logging 
-			pixieThread = threading.Thread(target=pixieLog, args=(startDateTime,hostIP,BASE_PORT, PebbleFolder))
-			pixieThread.setDaemon(True)
-			# Pebble Feature Ext + Stream to BaseStation
-			pebbleFeatThread = threading.Thread(target=motionFeatExt, args = (startDateTime, hostIP, BASE_PORT, PebbleFolder))
-			pebbleFeatThread.setDaemon(True)
+		if IS_PIXIE:        
+			pass 
+			# # Pebble - Pixie Logging 
+			# pixieThread = threading.Thread(target=pixieLog, args=(startDateTime,hostIP,BASE_PORT, PebbleFolder))
+			# pixieThread.setDaemon(True)
+			# # Pebble Feature Ext + Stream to BaseStation
+			# pebbleFeatThread = threading.Thread(target=motionFeatExt, args = (startDateTime, hostIP, BASE_PORT, PebbleFolder))
+			# pebbleFeatThread.setDaemon(True)
 
 				
 
@@ -248,8 +253,9 @@ while True:
 		if IS_MEMINI:
 			meminiThread.start()
 		if IS_PIXIE:
-			pixieThread.start()
-			pebbleFeatThread.start()
+			pass
+			# pixieThread.start()
+			# pebbleFeatThread.start()
 
 		if USE_AUDIO:
 			audioThread.start()
@@ -266,8 +272,9 @@ while True:
 		if IS_MEMINI:
 			meminiThread.join()
 		if IS_PIXIE:
-			pixieThread.join()
-			pebbleFeatThread.join()
+			pass
+			# pixieThread.join()
+			# pebbleFeatThread.join()
 		
 		if USE_AUDIO:
 			audioThread.join()

@@ -362,7 +362,8 @@ def create_notification(agitationType):
 	# notification_info="Agitation Detected!"
 	# notification_param="Yes/No?"
 	# notification_msg = notification_info + "\nType: " + notification_type + "\n\nConfirm: " + notification_param
-	notification_msg = "Any\nAgitation\nEvents\nToday?"
+	# notification_msg = "Any\nAgitation\nEvents\nToday?"
+	notification_msg = "Agitation\nDetected\n\nNo/Yes?"
 	return notification_msg
 
 
@@ -384,8 +385,8 @@ def memini_main(mainMsgService,mainCommHandler,mainMsgHandler):
 	#print "notiFlag = " + str(rNTPTime.notiFlag)
 	# if agiStatus == True:
 
-
 	if int(rNTPTime.notiFlag) == 1:
+	# if True: #for testing
 		notification = create_notification(agiType)
 		#notification_type + "\n\n" + notification_info + "\n\n" + notification_param  
 		mainCommHandler.send_message({NOTIFICATION_TO_WATCH: CString(notification)})
@@ -481,8 +482,10 @@ def meminiSense(startDateTime,hostIP,BASE_PORT,streaming=True,logging=True):
 				pebbleMessage.append("checkNoti") #check for notiFlag from basestation
 				pebbleMessage.append(str(BASE_PORT))
 				temp = rNTPTime.checkNoti(hostIP, pebbleMessage, 5) 
+				# if True: #for testing
 				if int(rNTPTime.notiFlag) == 1:
 					memini_main(mainMsgService,mainCommHandler,mainMsgHandler)
+					# print("sending Message")
 				else:
 					#print "NO NOTIFICATION"
 					time.sleep(NOTI_CHECK_DELAY)

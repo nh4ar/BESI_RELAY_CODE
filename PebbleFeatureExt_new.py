@@ -8,34 +8,84 @@ import rNTPTime
 from Constants import *
 import testFeatureSending
 
-def motionPreProcessing(rawX, rawY, rawZ, rawTime):
-	x = numpy.array(rawX)
-	y = numpy.array(rawY)
-	z = numpy.array(rawZ)
-	t = numpy.array(rawTime)
+def main():
+	motionFeatExt()
 
-	#Magnitude Adjustment
-	#Clipping out-of-range values
-	x = [numpy.sign(i)*4000 if abs(i)>3999 else i for i in x]
-	y = [numpy.sign(i)*4000 if abs(i)>3999 else i for i in y]
-	z = [numpy.sign(i)*4000 if abs(i)>3999 else i for i in z]
+def motionPreProcessing(dataSample):
+	dataSample = float(dataSample)
+
+	clippingValue = 4000
+	if abs(dataSample) >= clippingValue:
+		dataSample = clippingValue*(dataSample/abs(dataSample))
+
+	dataSample = (dataSample+4000)/8000 * 100;
+
+	return dataSample
+
+def readConfigFile():
+	# get BS IP and RS port # from config file
+	configFileName = r'/root/besi-relay-station/BESI_LOGGING_R/config'
+	fconfig = open(configFileName)
+	for line in fconfig:
+		if line[0] == "#":
+			pass
+		else:
+			splitLine = line.split("=")
+			try:
+				if splitLine[0] == "BaseStation_IP":
+					BaseStation_IP2 = str(splitLine[1]).rstrip()
+			except:
+				print "Error reading IP Address"
+			
+			try:
+				if splitLine[0] == "relayStation_ID":
+					relayStation_ID2 = int(splitLine[1])
+			except:
+				print "Error reading Port" 
+			try:
+				if splitLine[0] == "PebbleFolder":
+					PebbleFolder = str(splitLine[1]).rstrip()
+			except:
+				print "Error reading Pebble Folder"
+			# try:
+			# 	if splitLine[0] == "Wearable":
+			# 		wearable_mode = str(splitLine[1]).rstrip()
+			# 		if wearable_mode=="Pixie":
+			# 			IS_PIXIE = True
+			# 			IS_MEMINI = False
+			# 		elif wearable_mode=="Memini":
+			# 			IS_PIXIE = False
+			# 			IS_MEMINI = True
+			# except:
+			# 	print "Error finding Pebble Mode"
+
+			# if IS_PIXIE == True:
+				
+	default_settings = ''
+	fconfig.close()
+
+	return BaseStation_IP2, relayStation_ID2, PebbleFolder
 
 
-	return x, y, z
+# def motionFeatExt(startDateTime, hostIP, BASE_PORT, pebbleFolder):
+def motionFeatExt():
 
+		debugMode = True
 
-def motionFeatExt(startDateTime, hostIP, BASE_PORT, pebbleFolder):
-
-		debugMode = False
+		#get info from config file
+		hostIP, BASE_PORT, pebbleFolder = readConfigFile()
 
 		#for realtime processing - when restarted - move every older motion data to rawPebble
-		# files = os.walk(BASE_PATH + pebbleFolder + "/").next()[2] #BASE_PATH = /media/card/
+		files = os.walk(BASE_PATH + pebbleFolder + "/").next()[2] #BASE_PATH = /media/card/
 
-		# for names in files:
-		# 	src = BASE_PATH + pebbleFolder + "/"+files[0]
-		# 	dst = BASE_PATH + "Relay_Station" + str(BASE_PORT) + "/rawPebble/" + files[0]
-		# 	shutil.move(src,dst)
-		# print "init realtime PebbleFeature Ext.."
+		for names in files:
+			try: 
+				src = BASE_PATH + pebbleFolder + "/"+names
+				dst = BASE_PATH + "Relay_Station" + str(BASE_PORT) + "/rawPebble/" + files[0]
+				shutil.move(src,dst)
+			except:
+				continue
+		print "init realtime PebbleFeature Ext.."
 
 		x=[]
 		y=[]
@@ -96,11 +146,14 @@ def motionFeatExt(startDateTime, hostIP, BASE_PORT, pebbleFolder):
 					#Convert Epoch time -> readable Time 
 					dstFileTime = files[0].split('_')
 					dstFileTime = dstFileTime[2].split('.')
-					dstFileTime = datetime.datetime.fromtimestamp(int(dstFileTime[0])/1000).strftime('%y-%m-%d_%H-%M-%S')
+					dstFileTime = datetime.datetime.fromtimestamp(int(dstFileTime[0])/1000)
+					dstFileTime = dstFileTime - datetime.timedelta(hours=4) #ET time
+					dstFileTime = dstFileTime.strftime('%y-%m-%d_%H-%M-%S')
 
 					PebbleFeatureFileName = BASE_PATH+"Relay_Station{0}/PebbleFeature/PebbleFeature{1}.txt".format(BASE_PORT, dstFileTime)
 					#check if the PebbleFeature has already been created 
-					if not os.path.exists(BASE_PATH + pebbleFolder + "/" +files[0]):
+					# if not os.path.exists(BASE_PATH + pebbleFolder + "/" +files[0]):
+					if not os.path.exists(PebbleFeatureFileName):
 						with open(PebbleFeatureFileName, "w") as PebbleFeatureFile:
 							PebbleFeatureFile.write(dstFileTime+"\n")
 							PebbleFeatureFile.write("Deployment ID: Unknown, Relay Station ID: {}\n".format(BASE_PORT))
@@ -130,10 +183,11 @@ def motionFeatExt(startDateTime, hostIP, BASE_PORT, pebbleFolder):
 
 								num = rawPebbleData[i].split(',')
 								if len(num) >= 4:
-									rawZ.append(int(num[0])) 
-									rawY.append(int(num[1]))
-									rawX.append(int(num[2]))
+									rawZ.append(motionPreProcessing(int(num[0]))) 
+									rawY.append(motionPreProcessing(int(num[1])))
+									rawX.append(motionPreProcessing(int(num[2])))
 									rawTime.append(int(num[3])) 
+									# rawTime.append(int(num[4])) #for P2D4
 									# print num[0] +" "+num[1] +" "+ num[2] +" "+ num[3]
 
 							currLine = rawlineCount
@@ -158,7 +212,9 @@ def motionFeatExt(startDateTime, hostIP, BASE_PORT, pebbleFolder):
 						#Convert Epoch time -> readable Time 
 						dstFileTime = files[0].split('_')
 						dstFileTime = dstFileTime[2].split('.')
-						dstFileTime = datetime.datetime.fromtimestamp(int(dstFileTime[0])/1000).strftime('%y-%m-%d_%H-%M-%S')
+						dstFileTime = datetime.datetime.fromtimestamp(int(dstFileTime[0])/1000)
+						dstFileTime = dstFileTime - datetime.timedelta(hours=4) #ET time
+						dstFileTime = dstFileTime.strftime('%y-%m-%d_%H-%M-%S')
 
 						PebbleFeatureFileName = BASE_PATH+"Relay_Station{0}/PebbleFeature/PebbleFeature{1}.txt".format(BASE_PORT, dstFileTime)
 						with open(PebbleFeatureFileName, "w") as PebbleFeatureFile:
@@ -191,7 +247,7 @@ def motionFeatExt(startDateTime, hostIP, BASE_PORT, pebbleFolder):
 
 					if debugMode: print numpy.diff(rawTime[0:3050])
 
-					x,y,z = motionPreProcessing(x,y,z,rawTime[0:3050])
+					# x,y,z = motionPreProcessing(x,y,z,rawTime[0:3050])
 					mag = numpy.sqrt(numpy.square(x) + numpy.square(y) + numpy.square(z))
 
 					lower_lim = 1 #some feature required data[lower_lim-1]
@@ -356,14 +412,14 @@ def motionFeatExt(startDateTime, hostIP, BASE_PORT, pebbleFolder):
 
 					for g in range(3000):
 							if g==0:
-									xx=(x[g+lower_lim])^2
-									yy=(y[g+lower_lim])^2
-									zz=(z[g+lower_lim])^2
+									xx=(numpy.square(x[g+lower_lim]))
+									yy=(numpy.square(y[g+lower_lim]))
+									zz=(numpy.square(z[g+lower_lim]))
 									mm=numpy.square(mag[g+lower_lim])
 							elif g != 0:
-									xx = (x[g+lower_lim])^2 - (x[g+lower_lim-1])*(x[g+lower_lim+1])
-									yy = (y[g+lower_lim])^2 - (y[g+lower_lim-1])*(y[g+lower_lim+1])
-									zz = (z[g+lower_lim])^2 - (z[g+lower_lim-1])*(z[g+lower_lim+1])
+									xx = (numpy.square(x[g+lower_lim])) - (x[g+lower_lim-1])*(x[g+lower_lim+1])
+									yy = (numpy.square(y[g+lower_lim])) - (y[g+lower_lim-1])*(y[g+lower_lim+1])
+									zz = (numpy.square(z[g+lower_lim])) - (z[g+lower_lim-1])*(z[g+lower_lim+1])
 									mm = numpy.square(mag[g+lower_lim]) - (mag[g+lower_lim-1])*(mag[g+lower_lim+1])
 									
 							x_teager.append(xx)
@@ -545,10 +601,9 @@ def motionFeatExt(startDateTime, hostIP, BASE_PORT, pebbleFolder):
 				#       tempDateTime = rNTPTime.sendUpdate(server_address, pixieMessage, 5)
 
 						
-
-
-
-
+# do stuff in main() -- for 'after declare' function
+if __name__ == '__main__':
+    main()
 
 
 
