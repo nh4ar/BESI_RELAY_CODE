@@ -7,13 +7,72 @@ import csv
 import subprocess
 import sys
 
+def main():
+	readADC()
 
+def readConfigFile():
+	# get BS IP and RS port # from config file
+	configFileName = r'/root/besi-relay-station/BESI_LOGGING_R/config'
+	fconfig = open(configFileName)
+	for line in fconfig:
+		if line[0] == "#":
+			pass
+		else:
+			splitLine = line.split("=")
+			try:
+				if splitLine[0] == "BaseStation_IP":
+					BaseStation_IP2 = str(splitLine[1]).rstrip()
+			except:
+				print "Error reading IP Address"
+			
+			try:
+				if splitLine[0] == "relayStation_ID":
+					relayStation_ID2 = int(splitLine[1])
+			except:
+				print "Error reading Port" 
+			# try:
+			# 	if splitLine[0] == "PebbleFolder":
+			# 		PebbleFolder = str(splitLine[1]).rstrip()
+			# except:
+			# 	print "Error reading Pebble Folder"
+			# try:
+			# 	if splitLine[0] == "Wearable":
+			# 		wearable_mode = str(splitLine[1]).rstrip()
+			# 		if wearable_mode=="Pixie":
+			# 			IS_PIXIE = True
+			# 			IS_MEMINI = False
+			# 		elif wearable_mode=="Memini":
+			# 			IS_PIXIE = False
+			# 			IS_MEMINI = True
+			# except:
+			# 	print "Error finding Pebble Mode"
+
+			# if IS_PIXIE == True:
+				
+	default_settings = ''
+	fconfig.close()
+
+	return BaseStation_IP2, relayStation_ID2
+	
 # gets sensor values from the temperature sensor and the microphone, writes the data to a file and sends the data over a socket
-def readADC(startDateTime, hostIP, BASE_PORT, streaming = True, logging = True):
+# def readADC(startDateTime, hostIP, BASE_PORT, streaming = True, logging = True):
+def readADC():
+	streaming = True
+	logging = True
+
+	#get info from config file
+	hostIP, BASE_PORT = readConfigFile()
 
 	server_address = (hostIP, BASE_PORT)
-	# use custom function because datetime.strptime fails in multithreaded applications
-	startTimeDT = rNTPTime.stripDateTime(startDateTime)
+
+	startDateTime = rNTPTime.sendUpdate(server_address, "-99", 5)
+	if startDateTime != None:
+		# use custom function because datetime.strptime fails in multithreaded applications
+		startTimeDT = rNTPTime.stripDateTime(startDateTime)
+	else:
+		startDateTime = rNTPTime.sendUpdate(server_address, "-99", 5)
+		startTimeDT = rNTPTime.stripDateTime(startDateTime)
+	
 	audioFileName = BASE_PATH+"Relay_Station{0}/Audio/Audio{1}.txt".format(BASE_PORT, startTimeDT)
 	# doorFileName = BASE_PATH+"Relay_Station{0}/Door/Door{1}.txt".format(BASE_PORT, startTimeDT)
 	# tempFileName = BASE_PATH+"Relay_Station{0}/Temperature/Temperature{1}.txt".format(BASE_PORT, startTimeDT)
@@ -205,3 +264,6 @@ def readADC(startDateTime, hostIP, BASE_PORT, streaming = True, logging = True):
 			
 
 
+# do stuff in main() -- for 'after declare' function
+if __name__ == '__main__':
+	main()

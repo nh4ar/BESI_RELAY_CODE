@@ -176,9 +176,9 @@ while True:
 
 			startDateTime = splitData[2]
 			USE_LIGHT = True
-			USE_ADC = True
+			USE_ADC = False
 			USE_WEATHER = True
-			USE_AUDIO = True
+			USE_AUDIO = False
 			USE_DOOR = False #door got moved to rawADC.py thread
 
 			# USE_LIGHT = False

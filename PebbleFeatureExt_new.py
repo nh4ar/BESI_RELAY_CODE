@@ -78,6 +78,7 @@ def motionFeatExt():
 		#for realtime processing - when restarted - move every older motion data to rawPebble
 		files = os.walk(BASE_PATH + pebbleFolder + "/").next()[2] #BASE_PATH = /media/card/
 
+		# Comment out for testing
 		for names in files:
 			try: 
 				src = BASE_PATH + pebbleFolder + "/"+names
@@ -120,13 +121,13 @@ def motionFeatExt():
 		
 		FeatureList = ("timestamp_1,timestamp_2,"
 		+"x_mean,x_median,x_max,x_var,x_rms,x_IQR,x_meanXrate,x_meanDiff,x_maxDiff,x_teager_mean,x_teager_std,"
-		+"x_teager_max,x_fft_0_1_max,x_fft_mean_0_1,x_fft_1_3_max,x_fft_mean_1_3,x_fft_3_10_max,x_fft_mean_3_10,"
+		+"x_teager_max,x_fft_mean_0_1,x_fft_0_1_max,x_fft_mean_1_3,x_fft_1_3_max,x_fft_mean_3_10,x_fft_3_10_max,"
 		+"y_mean,y_median,y_max,y_var,y_rms,y_IQR,y_meanXrate,y_meanDiff,y_maxDiff,y_teager_mean,y_teager_std,"
-		+"y_teager_max,y_fft_0_1_max,y_fft_mean_0_1,y_fft_1_3_max,y_fft_mean_1_3,y_fft_3_10_max,y_fft_mean_3_10,"
+		+"y_teager_max,y_fft_mean_0_1,y_fft_0_1_max,y_fft_mean_1_3,y_fft_1_3_max,y_fft_mean_3_10,y_fft_3_10_max,"
 		+"z_mean,z_median,z_max,z_var,z_rms,z_IQR,z_meanXrate,z_meanDiff,z_maxDiff,z_teager_mean,z_teager_std,"
-		+"z_teager_max,z_fft_0_1_max,z_fft_mean_0_1,z_fft_1_3_max,z_fft_mean_1_3,z_fft_3_10_max,z_fft_mean_3_10,"
+		+"z_teager_max,z_fft_mean_0_1,z_fft_0_1_max,z_fft_mean_1_3,z_fft_1_3_max,z_fft_mean_3_10,z_fft_3_10_max,"
 		+"mag_mean,mag_median,mag_max,mag_var,mag_rms,mag_IQR,mag_meanXrate,mag_meanDiff,mag_maxDiff,mag_teager_mean,mag_teager_std,"
-		+"mag_teager_max,mag_fft_0_1_max,mag_fft_mean_0_1,mag_fft_1_3_max,mag_fft_mean_1_3,mag_fft_3_10_max,mag_fft_mean_3_10,"
+		+"mag_teager_max,mag_fft_mean_0_1,mag_fft_0_1_max,mag_fft_mean_1_3,mag_fft_1_3_max,mag_fft_mean_3_10,mag_fft_3_10_max,"
 		+"corr_xy,corr_xz,corr_yz"
 		+"\n")
 
@@ -515,55 +516,82 @@ def motionFeatExt():
 							+ ", " + str(x_var) + ", " + str(x_rms) + ", " + str(x_IQR) 
 							+ ", " + str(x_meanXrate) + ", " + str(x_meanDiff) + ", " + str(x_maxDiff)  
 							+ ", " + str(x_teager_mean) + ", " + str(x_teager_std) + ", " + str(x_teager_max)
-							+ ", " + str(x_fft_0_1_max) + ", " + str(x_fft_mean_0_1) + ", " + str(x_fft_1_3_max)
-							+ ", " + str(x_fft_mean_1_3) + ", " + str(x_fft_3_10_max) + ", " + str(x_fft_mean_3_10)  
+							+ ", " + str(x_fft_mean_0_1) + ", " + str(x_fft_0_1_max) + ", " + str(x_fft_mean_1_3)
+							+ ", " + str(x_fft_1_3_max) + ", " + str(x_fft_mean_3_10) + ", " + str(x_fft_3_10_max)  
 							+ ", " + str(y_mean) + ", " + str(y_median) + ", " + str(y_max) 
 							+ ", " + str(y_var) + ", " + str(y_rms) + ", " + str(y_IQR) 
 							+ ", " + str(y_meanXrate) + ", " + str(y_meanDiff) + ", " + str(y_maxDiff)  
 							+ ", " + str(y_teager_mean) + ", " + str(y_teager_std) + ", " + str(y_teager_max)
-							+ ", " + str(y_fft_0_1_max) + ", " + str(y_fft_mean_0_1) + ", " + str(y_fft_1_3_max)
-							+ ", " + str(y_fft_mean_1_3) + ", " + str(y_fft_3_10_max) + ", " + str(y_fft_mean_3_10) 
+							+ ", " + str(y_fft_mean_0_1) + ", " + str(y_fft_0_1_max) + ", " + str(y_fft_mean_1_3)
+							+ ", " + str(y_fft_1_3_max) + ", " + str(y_fft_mean_3_10) + ", " + str(y_fft_3_10_max) 
 							+ ", " + str(z_mean) + ", " + str(z_median) + ", " + str(z_max) 
 							+ ", " + str(z_var) + ", " + str(z_rms) + ", " + str(z_IQR) 
 							+ ", " + str(z_meanXrate) + ", " + str(z_meanDiff) + ", " + str(z_maxDiff)  
 							+ ", " + str(z_teager_mean) + ", " + str(z_teager_std) + ", " + str(z_teager_max)
-							+ ", " + str(z_fft_0_1_max) + ", " + str(z_fft_mean_0_1) + ", " + str(z_fft_1_3_max)
-							+ ", " + str(z_fft_mean_1_3) + ", " + str(z_fft_3_10_max) + ", " + str(z_fft_mean_3_10) 
+							+ ", " + str(z_fft_mean_0_1) + ", " + str(z_fft_0_1_max) + ", " + str(z_fft_mean_1_3)
+							+ ", " + str(z_fft_1_3_max) + ", " + str(z_fft_mean_3_10) + ", " + str(z_fft_3_10_max) 
 							+ ", " + str(mag_mean) + ", " + str(mag_median) + ", " + str(mag_max) 
 							+ ", " + str(mag_var) + ", " + str(mag_rms) + ", " + str(mag_IQR) 
 							+ ", " + str(mag_meanXrate) + ", " + str(mag_meanDiff) + ", " + str(mag_maxDiff)  
 							+ ", " + str(mag_teager_mean) + ", " + str(mag_teager_std) + ", " + str(mag_teager_max)
-							+ ", " + str(mag_fft_0_1_max) + ", " + str(mag_fft_mean_0_1) + ", " + str(mag_fft_1_3_max)
-							+ ", " + str(mag_fft_mean_1_3) + ", " + str(mag_fft_3_10_max) + ", " + str(mag_fft_mean_3_10) 
+							+ ", " + str(mag_fft_mean_0_1) + ", " + str(mag_fft_0_1_max) + ", " + str(mag_fft_mean_1_3)
+							+ ", " + str(mag_fft_1_3_max) + ", " + str(mag_fft_mean_3_10) + ", " + str(mag_fft_3_10_max) 
 							+ ", " + str(corr_xy) + ", " + str(corr_xz) + ", " + str(corr_yz)
 							+ "\n ")
-
+					# with open(PebbleFeatureFileName, "a") as PebbleFeatureFile:
+					# 	PebbleFeatureFile.write(str(timestamp_1) + ", " + str(timestamp_2) 
+					# 		+ ", " + str(x_mean) + ", " + str(x_median) + ", " + str(x_max) 
+					# 		+ ", " + str(x_var) + ", " + str(x_rms) + ", " + str(x_IQR) 
+					# 		+ ", " + str(x_meanXrate) + ", " + str(x_meanDiff) + ", " + str(x_maxDiff)  
+					# 		+ ", " + str(x_teager_mean) + ", " + str(x_teager_std) + ", " + str(x_teager_max)
+					# 		+ ", " + str(x_fft_0_1_max) + ", " + str(x_fft_mean_0_1) + ", " + str(x_fft_1_3_max)
+					# 		+ ", " + str(x_fft_mean_1_3) + ", " + str(x_fft_3_10_max) + ", " + str(x_fft_mean_3_10)  
+					# 		+ ", " + str(y_mean) + ", " + str(y_median) + ", " + str(y_max) 
+					# 		+ ", " + str(y_var) + ", " + str(y_rms) + ", " + str(y_IQR) 
+					# 		+ ", " + str(y_meanXrate) + ", " + str(y_meanDiff) + ", " + str(y_maxDiff)  
+					# 		+ ", " + str(y_teager_mean) + ", " + str(y_teager_std) + ", " + str(y_teager_max)
+					# 		+ ", " + str(y_fft_0_1_max) + ", " + str(y_fft_mean_0_1) + ", " + str(y_fft_1_3_max)
+					# 		+ ", " + str(y_fft_mean_1_3) + ", " + str(y_fft_3_10_max) + ", " + str(y_fft_mean_3_10) 
+					# 		+ ", " + str(z_mean) + ", " + str(z_median) + ", " + str(z_max) 
+					# 		+ ", " + str(z_var) + ", " + str(z_rms) + ", " + str(z_IQR) 
+					# 		+ ", " + str(z_meanXrate) + ", " + str(z_meanDiff) + ", " + str(z_maxDiff)  
+					# 		+ ", " + str(z_teager_mean) + ", " + str(z_teager_std) + ", " + str(z_teager_max)
+					# 		+ ", " + str(z_fft_0_1_max) + ", " + str(z_fft_mean_0_1) + ", " + str(z_fft_1_3_max)
+					# 		+ ", " + str(z_fft_mean_1_3) + ", " + str(z_fft_3_10_max) + ", " + str(z_fft_mean_3_10) 
+					# 		+ ", " + str(mag_mean) + ", " + str(mag_median) + ", " + str(mag_max) 
+					# 		+ ", " + str(mag_var) + ", " + str(mag_rms) + ", " + str(mag_IQR) 
+					# 		+ ", " + str(mag_meanXrate) + ", " + str(mag_meanDiff) + ", " + str(mag_maxDiff)  
+					# 		+ ", " + str(mag_teager_mean) + ", " + str(mag_teager_std) + ", " + str(mag_teager_max)
+					# 		+ ", " + str(mag_fft_0_1_max) + ", " + str(mag_fft_mean_0_1) + ", " + str(mag_fft_1_3_max)
+					# 		+ ", " + str(mag_fft_mean_1_3) + ", " + str(mag_fft_3_10_max) + ", " + str(mag_fft_mean_3_10)
+					# 		+ ", " + str(corr_xy) + ", " + str(corr_xz) + ", " + str(corr_yz)
+					# 		+ "\n ")
 					#construct Features Message to send to base station
 					featureMessage = (str(timestamp_1) + ", " + str(timestamp_2) 
 						+ ", " + str(x_mean) + ", " + str(x_median) + ", " + str(x_max) 
 						+ ", " + str(x_var) + ", " + str(x_rms) + ", " + str(x_IQR) 
 						+ ", " + str(x_meanXrate) + ", " + str(x_meanDiff) + ", " + str(x_maxDiff)  
 						+ ", " + str(x_teager_mean) + ", " + str(x_teager_std) + ", " + str(x_teager_max)
-						+ ", " + str(x_fft_0_1_max) + ", " + str(x_fft_mean_0_1) + ", " + str(x_fft_1_3_max)
-						+ ", " + str(x_fft_mean_1_3) + ", " + str(x_fft_3_10_max) + ", " + str(x_fft_mean_3_10)  
+						+ ", " + str(x_fft_mean_0_1) + ", " + str(x_fft_0_1_max) + ", " + str(x_fft_mean_1_3)
+						+ ", " + str(x_fft_1_3_max) + ", " + str(x_fft_mean_3_10) + ", " + str(x_fft_3_10_max)  
 						+ ", " + str(y_mean) + ", " + str(y_median) + ", " + str(y_max) 
 						+ ", " + str(y_var) + ", " + str(y_rms) + ", " + str(y_IQR) 
 						+ ", " + str(y_meanXrate) + ", " + str(y_meanDiff) + ", " + str(y_maxDiff)  
 						+ ", " + str(y_teager_mean) + ", " + str(y_teager_std) + ", " + str(y_teager_max)
-						+ ", " + str(y_fft_0_1_max) + ", " + str(y_fft_mean_0_1) + ", " + str(y_fft_1_3_max)
-						+ ", " + str(y_fft_mean_1_3) + ", " + str(y_fft_3_10_max) + ", " + str(y_fft_mean_3_10) 
+						+ ", " + str(y_fft_mean_0_1) + ", " + str(y_fft_0_1_max) + ", " + str(y_fft_mean_1_3)
+						+ ", " + str(y_fft_1_3_max) + ", " + str(y_fft_mean_3_10) + ", " + str(y_fft_3_10_max) 
 						+ ", " + str(z_mean) + ", " + str(z_median) + ", " + str(z_max) 
 						+ ", " + str(z_var) + ", " + str(z_rms) + ", " + str(z_IQR) 
 						+ ", " + str(z_meanXrate) + ", " + str(z_meanDiff) + ", " + str(z_maxDiff)  
 						+ ", " + str(z_teager_mean) + ", " + str(z_teager_std) + ", " + str(z_teager_max)
-						+ ", " + str(z_fft_0_1_max) + ", " + str(z_fft_mean_0_1) + ", " + str(z_fft_1_3_max)
-						+ ", " + str(z_fft_mean_1_3) + ", " + str(z_fft_3_10_max) + ", " + str(z_fft_mean_3_10) 
+						+ ", " + str(z_fft_mean_0_1) + ", " + str(z_fft_0_1_max) + ", " + str(z_fft_mean_1_3)
+						+ ", " + str(z_fft_1_3_max) + ", " + str(z_fft_mean_3_10) + ", " + str(z_fft_3_10_max) 
 						+ ", " + str(mag_mean) + ", " + str(mag_median) + ", " + str(mag_max) 
 						+ ", " + str(mag_var) + ", " + str(mag_rms) + ", " + str(mag_IQR) 
 						+ ", " + str(mag_meanXrate) + ", " + str(mag_meanDiff) + ", " + str(mag_maxDiff)  
 						+ ", " + str(mag_teager_mean) + ", " + str(mag_teager_std) + ", " + str(mag_teager_max)
-						+ ", " + str(mag_fft_0_1_max) + ", " + str(mag_fft_mean_0_1) + ", " + str(mag_fft_1_3_max)
-						+ ", " + str(mag_fft_mean_1_3) + ", " + str(mag_fft_3_10_max) + ", " + str(mag_fft_mean_3_10) 
+						+ ", " + str(mag_fft_mean_0_1) + ", " + str(mag_fft_0_1_max) + ", " + str(mag_fft_mean_1_3)
+						+ ", " + str(mag_fft_1_3_max) + ", " + str(mag_fft_mean_3_10) + ", " + str(mag_fft_3_10_max) 
 						+ ", " + str(corr_xy) + ", " + str(corr_xz) + ", " + str(corr_yz)
 						+ "")
 					PORT = 9000 

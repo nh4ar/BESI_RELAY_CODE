@@ -10,14 +10,76 @@ import sys
 from pyAudioAnalysis import audioFeatureExtraction
 import rawADC
 
-def audioFeatureExt(startDateTime, hostIP, BASE_PORT):
+def main():
+	audioFeatureExt()
 
-	debugMode = False
+def readConfigFile():
+	# get BS IP and RS port # from config file
+	configFileName = r'/root/besi-relay-station/BESI_LOGGING_R/config'
+	fconfig = open(configFileName)
+	for line in fconfig:
+		if line[0] == "#":
+			pass
+		else:
+			splitLine = line.split("=")
+			try:
+				if splitLine[0] == "BaseStation_IP":
+					BaseStation_IP2 = str(splitLine[1]).rstrip()
+			except:
+				print "Error reading IP Address"
+			
+			try:
+				if splitLine[0] == "relayStation_ID":
+					relayStation_ID2 = int(splitLine[1])
+			except:
+				print "Error reading Port" 
+			# try:
+			# 	if splitLine[0] == "PebbleFolder":
+			# 		PebbleFolder = str(splitLine[1]).rstrip()
+			# except:
+			# 	print "Error reading Pebble Folder"
+			# try:
+			# 	if splitLine[0] == "Wearable":
+			# 		wearable_mode = str(splitLine[1]).rstrip()
+			# 		if wearable_mode=="Pixie":
+			# 			IS_PIXIE = True
+			# 			IS_MEMINI = False
+			# 		elif wearable_mode=="Memini":
+			# 			IS_PIXIE = False
+			# 			IS_MEMINI = True
+			# except:
+			# 	print "Error finding Pebble Mode"
+
+			# if IS_PIXIE == True:
+				
+	default_settings = ''
+	fconfig.close()
+
+	return BaseStation_IP2, relayStation_ID2
+
+def audioFeatureExt():
+	# def audioFeatureExt(startDateTime, hostIP, BASE_PORT):
+
+	debugMode = True
 
 	time.sleep((LOOP_DELAY * UPDATE_DELAY))
 
+	hostIP, BASE_PORT = readConfigFile()
+
 	#Heartbeat stuff
 	server_address = (hostIP, BASE_PORT)
+
+	# startDateTime = rNTPTime.sendUpdate(server_address, "-99", 10)
+	# if startDateTime != None:
+	# 	# use custom function because datetime.strptime fails in multithreaded applications
+	# 	startTimeDT = rNTPTime.stripDateTime(startDateTime)
+	# else:
+	# 	while(startDateTime == None):
+	# 		startDateTime = rNTPTime.sendUpdate(server_address, "-99", 10)
+	# 		time.sleep(5)
+	# 		print "connection to base station timed out"
+	# 	startTimeDT = rNTPTime.stripDateTime(startDateTime)
+
 	audioMessage = []
 	sumAudio = 0
 	sumAudioFeat = 0
@@ -30,8 +92,8 @@ def audioFeatureExt(startDateTime, hostIP, BASE_PORT):
 
 	audioBuffer = ["0"]
 
-	startTimeDT = rNTPTime.stripDateTime(startDateTime)
-	audioFeatureFileName = BASE_PATH+"Relay_Station{0}/AudioF/AudioF{1}.txt".format(BASE_PORT, startTimeDT)
+	# startTimeDT = rNTPTime.stripDateTime(startDateTime)
+	# audioFeatureFileName = BASE_PATH+"Relay_Station{0}/AudioF/AudioF{1}.txt".format(BASE_PORT, startTimeDT)
 
 	# with open(audioFeatureFileName, "w") as audioFeatureFile:
 	# 	audioFeatureFile.write(startDateTime+"\n")
@@ -42,14 +104,17 @@ def audioFeatureExt(startDateTime, hostIP, BASE_PORT):
 
 	currLine = startLine #current line to read/write from
 
+	print "Starting Audio Thread"
+
 	while True:
-		startTimeDT = rNTPTime.stripDateTime(startDateTime)
+		# startTimeDT = rNTPTime.stripDateTime(startDateTime)
 
 		rawADCLocation = BASE_PATH+"Relay_Station{0}/rawADC/".format(BASE_PORT)
 		files = os.walk(rawADCLocation).next()[2] #BASE_PATH = /media/card/
 		files.sort() #previous file first
 
 		rawlineCount = 0
+		# print files
 
 		if (len(files) > 0) : #not an empty folder
 
@@ -60,7 +125,7 @@ def audioFeatureExt(startDateTime, hostIP, BASE_PORT):
 			audioFeatureFileName = BASE_PATH+"Relay_Station{0}/AudioF/AudioF{1}.txt".format(BASE_PORT, rawADC_timeStamp)
 			if not os.path.exists(audioFeatureFileName):
 				with open(audioFeatureFileName, "w") as audioFeatureFile:
-					audioFeatureFile.write(startDateTime+"\n")
+					audioFeatureFile.write(rawADC_timeStamp+"\n")
 					audioFeatureFile.write("Deployment ID: Unknown, Relay Station ID: {}\n".format(BASE_PORT))
 					audioFeatureFile.write("Timestamp, ZCR, Energy, Energy Entropy, Spectral Centroid, Spectral Spread, Spectral Entropy, Spectral Flux, Spectral Rolloff, MFCC0, MFCC1, MFCC2, MFCC3, MFCC4, MFCC5, MFCC6, MFCC7, MFCC8, MFCC9, MFCC10, MFCC11, MFCC12, ChromaVector1, ChromaVector2, ChromaVector3, ChromaVector4, ChromaVector5, ChromaVector6, ChromaVector7, ChromaVector8, ChromaVector9, ChromaVector10, ChromaVector11, ChromaVector12, ChromaDeviation\n")
 
@@ -94,6 +159,17 @@ def audioFeatureExt(startDateTime, hostIP, BASE_PORT):
 			# doorData1 = rawADC_Data[10001:10011]
 			# doorData2 = rawADC_Data[10011:10021]
 			# tempF = float(rawADC_Data[-1])
+			if debugMode: print "len rawADC Data = "+ str(len(rawADC_Data[1:10001]))
+
+			if (len(rawADC_Data[1:10001]) < 10000) and (currLine == (rawlineCount-1)): #rawADC file fault - last line bugged
+				rawADCLocation = BASE_PATH+"Relay_Station{0}/rawADC/".format(BASE_PORT)
+				files = os.walk(rawADCLocation).next()[2] #BASE_PATH = /media/card/
+				files.sort() #previous file first
+
+				if len(files) >= 2 :
+					currLine = currLine + 1
+					if debugMode: print "Last line bugged - move to next file" 
+
 
 			if len(rawADC_Data[1:10001]) == 10000:
 				# audioFeatureExtraction.stFeatureExtraction(data, Fs, window, step)
@@ -151,24 +227,11 @@ def audioFeatureExt(startDateTime, hostIP, BASE_PORT):
 			rawlineCount = 0
 			for line in open(rawADCFileName).xreadlines(  ): rawlineCount += 1
 
-			if rawlineCount==currLine:
+			if rawlineCount<=currLine:
 
 				if debugMode: print "finished reading "+ files[0]+", deleting file now.."
 				os.remove(rawADCFileName)
 				currLine = startLine
-
-				# files = os.walk(rawADCLocation).next()[2] #BASE_PATH = /media/card/
-				# files.sort() #previous file first
-
-				# rawADC_timeStamp = files[0][6:-4] # read timeStamp on rawADC filename 
-
-				#create new audio feature file
-				# audioFeatureFileName = BASE_PATH+"Relay_Station{0}/AudioF/AudioF{1}.txt".format(BASE_PORT, rawADC_timeStamp)
-				# if not os.path.exists(audioFeatureFileName):
-				# 	with open(audioFeatureFileName, "w") as audioFeatureFile:
-				# 		audioFeatureFile.write(startDateTime+"\n")
-				# 		audioFeatureFile.write("Deployment ID: Unknown, Relay Station ID: {}\n".format(BASE_PORT))
-				# 		audioFeatureFile.write("Timestamp, ZCR, Energy, Energy Entropy, Spectral Centroid, Spectral Spread, Spectral Entropy, Spectral Flux, Spectral Rolloff, MFCC0, MFCC1, MFCC2, MFCC3, MFCC4, MFCC5, MFCC6, MFCC7, MFCC8, MFCC9, MFCC10, MFCC11, MFCC12, ChromaVector1, ChromaVector2, ChromaVector3, ChromaVector4, ChromaVector5, ChromaVector6, ChromaVector7, ChromaVector8, ChromaVector9, ChromaVector10, ChromaVector11, ChromaVector12, ChromaDeviation\n")
 
 				time.sleep(1)
 
@@ -205,3 +268,7 @@ def audioFeatureExt(startDateTime, hostIP, BASE_PORT):
 
 		
 	# END WHILE LOOP
+
+# do stuff in main() -- for 'after declare' function
+if __name__ == '__main__':
+	main()
