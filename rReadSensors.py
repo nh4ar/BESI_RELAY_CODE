@@ -15,7 +15,6 @@ import logging
 
 from rawADC import readADC
 from Audio import audioFeatureExt
-from Door import doorSensor
 from PebbleFeatureExt_new import motionFeatExt
 
 from threading import Lock
@@ -203,11 +202,6 @@ while True:
 			lightThread = threading.Thread(target=lightSense, args=(startDateTime, hostIP, BASE_PORT, IS_STREAMING, IS_LOGGING))
 			lightThread.setDaemon(True)
 			
-			
-		# if USE_ADC:
-		# 	# all sensors that use the ADC need to be managed by a single thread
-		# 	ADCThread = threading.Thread(target=soundSense, args = (startDateTime, hostIP, BASE_PORT, IS_STREAMING, IS_LOGGING))
-		# 	ADCThread.setDaemon(True)
 		if USE_ADC:
 			ADCThread = threading.Thread(target=readADC, args = (startDateTime, hostIP, BASE_PORT, IS_STREAMING, IS_LOGGING))
 			ADCThread.setDaemon(True)
@@ -219,10 +213,6 @@ while True:
 		if USE_AUDIO:
 			audioThread = threading.Thread(target=audioFeatureExt, args = (startDateTime, hostIP, BASE_PORT))
 			audioThread.setDaemon(True)
-
-		if USE_DOOR:
-			doorThread = threading.Thread(target=doorSensor, args = (startDateTime, hostIP, BASE_PORT))
-			doorThread.setDaemon(True)
 
 		if IS_MEMINI:
 			meminiThread = threading.Thread(target=meminiSense, args=(startDateTime,hostIP,BASE_PORT,Lock()))
@@ -259,8 +249,6 @@ while True:
 
 		if USE_AUDIO:
 			audioThread.start()
-		if USE_DOOR:
-			doorThread.start()
 
 		# wait until every thread exits (should never happen)
 		if USE_LIGHT:
@@ -278,8 +266,6 @@ while True:
 		
 		if USE_AUDIO:
 			audioThread.join()
-		if USE_DOOR:
-			doorThread.join()
 	
 	except:
 		print ""

@@ -22,6 +22,21 @@ def motionPreProcessing(dataSample):
 
 	return dataSample
 
+def clipping(data, t):
+	# new_data = [x for _,x in sorted(zip(t,data))]
+	new_data = data
+	size = 2
+	# print data
+	data_idx = numpy.where(numpy.abs(data)>=99)
+	data_idx = numpy.array(data_idx)
+	data_idx = data_idx[0]
+
+	for k in range(len(data_idx)):
+		if (data_idx[k]>size and data_idx[k]<len(new_data)-size):
+			new_data[data_idx[k]] = numpy.median(data[(data_idx[k]-size):(data_idx[k]+size)])
+	
+	return new_data
+
 def readConfigFile():
 	# get BS IP and RS port # from config file
 	configFileName = r'/root/besi-relay-station/BESI_LOGGING_R/config'
@@ -66,6 +81,75 @@ def readConfigFile():
 
 	return BaseStation_IP2, relayStation_ID2, PebbleFolder
 
+def fftpower(data):
+	Fs = float(50) #sampling freq
+	Ts = 1/Fs #period
+	L = float(len(data))
+	# print "Ts=" +str(Ts)
+	# print "L="+str(L)
+
+	f = Fs*numpy.arange(-(L/2),(L/2)-1)/L
+
+	Y = numpy.abs(numpy.fft.fft(data))
+	PY = (Y**2)/(L*Fs)
+	PY = PY*2
+	# print "PY=" +str(PY)
+
+	Pf = f[numpy.where(f>=0)]
+	# print "Pf=" +str(Pf)
+
+	PY1 = PY[numpy.where((Pf>0.1) & (Pf<=0.5))]
+	PY1mean = numpy.mean(PY1)
+	PY1max = max(PY1)
+	# print "PY1max=" +str(PY1max)
+
+	PY2 = PY[numpy.where((Pf>0.5) & (Pf<=3))]
+	PY2mean = numpy.mean(PY2)
+	PY2max = max(PY2)
+
+	PY3 = PY[numpy.where((Pf>3) & (Pf<=10))]
+	PY3mean = numpy.mean(PY3)
+	PY3max = max(PY3)
+
+	return PY1mean, PY1max, PY2mean, PY2max, PY3mean, PY3max
+
+def medfilt (x, k):
+    """Apply a length-k median filter to a 1D array x.
+    Boundaries are extended by repeating endpoints.
+    """
+    # assert k % 2 == 1, "Median filter length must be odd."
+    # assert x.ndim == 1, "Input must be one-dimensional."
+    k2 = (k - 1) // 2
+    y = numpy.zeros ((len (x), k))
+    y[:,k2] = x
+    for i in range (k2):
+        j = k2 - i
+        y[j:,i] = x[:-j]
+        y[:j,i] = x[0]
+        y[:-j,-(i+1)] = x[j:]
+        y[-j:,-(i+1)] = x[-1]
+    return numpy.median (y, axis=1)
+
+def teagerCompute(x):
+
+	# x = medfilt(x,5)
+	size_x = len(x)
+	VL = 2 #for point-wise teager
+	k = len(x)
+
+	start_point=(VL/2)-1
+	yy=numpy.zeros(size_x)
+	
+	#for 1:1
+	temp_a = numpy.dot(x[2:k-1],x[2:k-1]) - numpy.dot(x[3:k],x[1:k-2])
+	yy[2:k-1] = yy[2:k-1]+temp_a
+	#end for
+	
+	yy[1] = yy[2]
+	yy[-1] = yy[-2]
+	y = numpy.abs(yy)
+
+	return y
 
 # def motionFeatExt(startDateTime, hostIP, BASE_PORT, pebbleFolder):
 def motionFeatExt():
@@ -242,11 +326,18 @@ def motionFeatExt():
 					if debugMode: print "data length = " + str(len(rawX))
 
 					#for pre-processing
-					x = rawX[0:3050] #from 0 to 3000 + safety 50 samples (in case some processing needs the sample# 3001)
-					y = rawY[0:3050]
-					z = rawZ[0:3050]
+					x = rawX[0:windowSize] #from 0 to 3000 + safety 50 samples (in case some processing needs the sample# 3001)
+					y = rawY[0:windowSize]
+					z = rawZ[0:windowSize]
 
-					if debugMode: print numpy.diff(rawTime[0:3050])
+					x = clipping(x, rawTime[0:windowSize])
+					y = clipping(y, rawTime[0:windowSize])
+					z = clipping(z, rawTime[0:windowSize])
+					x = medfilt(x,5)
+					y = medfilt(y,5)
+					z = medfilt(z,5)
+
+					# if debugMode: print numpy.diff(rawTime[0:3050])
 
 					# x,y,z = motionPreProcessing(x,y,z,rawTime[0:3050])
 					mag = numpy.sqrt(numpy.square(x) + numpy.square(y) + numpy.square(z))
@@ -257,11 +348,6 @@ def motionFeatExt():
 					timestamp_1 = rawTime[lower_lim]
 					timestamp_2 = rawTime[upper_lim]
 
-					x_max = max(x[lower_lim:upper_lim])
-					# x_min = min(x[lower_lim:upper_lim])
-					x_mean = numpy.mean(x[lower_lim:upper_lim])
-					# x_std = numpy.std(x[lower_lim:upper_lim], ddof=1)
-
 					Fs = 50.0;  # sampling rate
 					Ts = 1.0/Fs; # sampling interval
 					t = numpy.arange(0,1,Ts) # time vector
@@ -271,239 +357,93 @@ def motionFeatExt():
 					frq = k/T # two sides frequency range
 					frq = frq[range(n/2)] # one side frequency range
 
-					X = numpy.fft.fft(x[lower_lim:upper_lim])/n # fft computing and normalization
-					X = X[range(n/2)]
-					X = numpy.absolute(X)
-					X = list(X)
+					##### frequency #####
+					x_fft_mean_0_1,x_fft_0_1_max,x_fft_mean_1_3,x_fft_1_3_max,x_fft_mean_3_10,x_fft_3_10_max = fftpower(x)
+					y_fft_mean_0_1,y_fft_0_1_max,y_fft_mean_1_3,y_fft_1_3_max,y_fft_mean_3_10,y_fft_3_10_max = fftpower(y)
+					z_fft_mean_0_1,z_fft_0_1_max,z_fft_mean_1_3,z_fft_1_3_max,z_fft_mean_3_10,z_fft_3_10_max = fftpower(z)
+					mag_fft_mean_0_1,mag_fft_0_1_max,mag_fft_mean_1_3,mag_fft_1_3_max,mag_fft_mean_3_10,mag_fft_3_10_max = fftpower(mag)
+					#####
+					x_fft_mean_3_10 = x_fft_mean_3_10
+					y_fft_mean_3_10 = y_fft_mean_3_10*1.4
+					z_fft_mean_3_10 = z_fft_mean_3_10*1.5
+					mag_fft_mean_3_10 = mag_fft_mean_3_10*2
 
-					i1 = X.index(max(numpy.absolute(X[1:60]))) #finds the index of the max fft magnitude between 0&1 Hz
-					i2 = X.index(max(numpy.absolute(X[61:180]))) #finds the index of the max fft magnitude between 1&3 Hz
-					i3 = X.index(max(numpy.absolute(X[181:600]))) #finds the index of the max fft magnitude between 3&10 Hz
+					##### teagers #####
+					x_teager = teagerCompute(x)
+					y_teager = teagerCompute(y)
+					z_teager = teagerCompute(z)
+					mag_teager = teagerCompute(mag)
 
-					x_fft_0_1_max = frq[i1] 
-					x_fft_1_3_max = frq[i2]
-					x_fft_3_10_max = frq[i3]
-
-					X_sum = sum(X)
-					X_mag = sum(numpy.multiply(X,frq))
-					x_fft_mean = X_sum/X_mag
-
-					X_sum_0_1 = sum(X[1:60])
-					X_mag_0_1 = sum(numpy.multiply(X[1:60],frq[1:60]))
-					x_fft_mean_0_1 = X_sum_0_1/X_mag_0_1
-
-					X_sum_1_3 = sum(X[61:180])
-					X_mag_1_3 = sum(numpy.multiply(X[61:180],frq[61:180]))
-					x_fft_mean_1_3 = X_sum_1_3/X_mag_1_3
-
-					X_sum_3_10 = sum(X[181:600])
-					X_mag_3_10 = sum(numpy.multiply(X[181:600],frq[181:600]))
-					x_fft_mean_3_10 = X_sum_3_10/X_mag_3_10
-
-
-					y_max = max(y[lower_lim:upper_lim])
-					# y_min = min(y[lower_lim:upper_lim])
-					y_mean = numpy.mean(y[lower_lim:upper_lim])
-					# y_std = numpy.std(y[lower_lim:upper_lim], ddof=1)
-
-					Y = numpy.fft.fft(y[lower_lim:upper_lim])/n # fft computing and normalization
-					Y = Y[range(n/2)]
-					Y = numpy.absolute(Y)
-					Y = list(Y)
-
-					i1 = Y.index(max(numpy.absolute(Y[1:60]))) #finds the index of the max fft magnitude between 0&1 Hz
-					i2 = Y.index(max(numpy.absolute(Y[61:180]))) #finds the index of the max fft magnitude between 1&3 Hz
-					i3 = Y.index(max(numpy.absolute(Y[181:600]))) #finds the index of the max fft magnitude between 3&10 Hz
-
-					y_fft_0_1_max = frq[i1] 
-					y_fft_1_3_max = frq[i2]
-					y_fft_3_10_max = frq[i3]
-
-					Y_sum = sum(Y)
-					Y_mag = sum(numpy.multiply(Y,frq))
-					y_fft_mean = Y_sum/Y_mag
-
-					Y_sum_0_1 = sum(Y[1:60])
-					Y_mag_0_1 = sum(numpy.multiply(Y[1:60],frq[1:60]))
-					y_fft_mean_0_1 = Y_sum_0_1/Y_mag_0_1
-
-					Y_sum_1_3 = sum(Y[61:180])
-					Y_mag_1_3 = sum(numpy.multiply(Y[61:180],frq[61:180]))
-					y_fft_mean_1_3 = Y_sum_1_3/Y_mag_1_3
-
-					Y_sum_3_10 = sum(Y[181:600])
-					Y_mag_3_10 = sum(numpy.multiply(Y[181:600],frq[181:600]))
-					y_fft_mean_3_10 = Y_sum_3_10/Y_mag_3_10
-
-
-
-					z_max = max(z[lower_lim:upper_lim])
-					# z_min = min(z[lower_lim:upper_lim])
-					z_mean = numpy.mean(z[lower_lim:upper_lim])
-					# z_std = numpy.std(z[lower_lim:upper_lim], ddof=1)
-
-					Z = numpy.fft.fft(z[lower_lim:upper_lim])/n # fft computing and normalization
-					Z = Z[range(n/2)]
-					Z = numpy.absolute(Z)
-					Z = list(Z)
-
-					i1 = Z.index(max(numpy.absolute(Z[1:60]))) #finds the index of the max fft magnitude between 0&1 Hz
-					i2 = Z.index(max(numpy.absolute(Z[61:180]))) #finds the index of the max fft magnitude between 1&3 Hz
-					i3 = Z.index(max(numpy.absolute(Z[181:600]))) #finds the index of the max fft magnitude between 3&10 Hz
-
-					z_fft_0_1_max = frq[i1] 
-					z_fft_1_3_max = frq[i2]
-					z_fft_3_10_max = frq[i3]
-
-					Z_sum = sum(Z)
-					Z_mag = sum(numpy.multiply(Z,frq))
-					z_fft_mean = Z_sum/Z_mag
-
-					Z_sum_0_1 = sum(Z[1:60])
-					Z_mag_0_1 = sum(numpy.multiply(Z[1:60],frq[1:60]))
-					z_fft_mean_0_1 = Z_sum_0_1/Z_mag_0_1
-
-					Z_sum_1_3 = sum(Z[61:180])
-					Z_mag_1_3 = sum(numpy.multiply(Z[61:180],frq[61:180]))
-					z_fft_mean_1_3 = Z_sum_1_3/Z_mag_1_3
-
-					Z_sum_3_10 = sum(Z[181:600])
-					Z_mag_3_10 = sum(numpy.multiply(Z[181:600],frq[181:600]))
-					z_fft_mean_3_10 = Z_sum_3_10/Z_mag_3_10
-
-
-					#magnitude features
-					mag_max = max(mag[lower_lim:upper_lim])
-					mag_mean = numpy.mean(mag[lower_lim:upper_lim])
-
-					MAG = numpy.fft.fft(mag[lower_lim:upper_lim])/n # fft computing and normalization
-					MAG = MAG[range(n/2)]
-					MAG = numpy.absolute(MAG)
-					MAG = list(MAG)
-
-					i1 = MAG.index(max(numpy.absolute(MAG[1:60]))) #finds the index of the max fft magnitude between 0&1 Hz
-					i2 = MAG.index(max(numpy.absolute(MAG[61:180]))) #finds the index of the max fft magnitude between 1&3 Hz
-					i3 = MAG.index(max(numpy.absolute(MAG[181:600]))) #finds the index of the max fft magnitude between 3&10 Hz
-
-					mag_fft_0_1_max = frq[i1] 
-					mag_fft_1_3_max = frq[i2]
-					mag_fft_3_10_max = frq[i3]
-
-					MAG_sum = sum(MAG)
-					MAG_mag = sum(numpy.multiply(MAG,frq))
-					mag_fft_mean = MAG_sum/MAG_mag
-
-					MAG_sum_0_1 = sum(MAG[1:60])
-					MAG_mag_0_1 = sum(numpy.multiply(MAG[1:60],frq[1:60]))
-					mag_fft_mean_0_1 = MAG_sum_0_1/MAG_mag_0_1
-
-					MAG_sum_1_3 = sum(MAG[61:180])
-					MAG_mag_1_3 = sum(numpy.multiply(MAG[61:180],frq[61:180]))
-					mag_fft_mean_1_3 = MAG_sum_1_3/MAG_mag_1_3
-
-					MAG_sum_3_10 = sum(MAG[181:600])
-					MAG_mag_3_10 = sum(numpy.multiply(MAG[181:600],frq[181:600]))
-					mag_fft_mean_3_10 = MAG_sum_3_10/MAG_mag_3_10
-
-
-					x_teager = []
-					y_teager = []
-					z_teager = []
-					mag_teager = []
-
-					for g in range(3000):
-							if g==0:
-									xx=(numpy.square(x[g+lower_lim]))
-									yy=(numpy.square(y[g+lower_lim]))
-									zz=(numpy.square(z[g+lower_lim]))
-									mm=numpy.square(mag[g+lower_lim])
-							elif g != 0:
-									xx = (numpy.square(x[g+lower_lim])) - (x[g+lower_lim-1])*(x[g+lower_lim+1])
-									yy = (numpy.square(y[g+lower_lim])) - (y[g+lower_lim-1])*(y[g+lower_lim+1])
-									zz = (numpy.square(z[g+lower_lim])) - (z[g+lower_lim-1])*(z[g+lower_lim+1])
-									mm = numpy.square(mag[g+lower_lim]) - (mag[g+lower_lim-1])*(mag[g+lower_lim+1])
-									
-							x_teager.append(xx)
-							y_teager.append(yy)
-							z_teager.append(zz)
-							mag_teager.append(mm)
-	
 					x_teager_max = max(x_teager)
-					x_teager_mean = numpy.mean(x_teager)
+					x_teager_mean = numpy.mean(x_teager)/Fs+9
 					y_teager_max = max(y_teager)
-					y_teager_mean = numpy.mean(y_teager)    
+					y_teager_mean = numpy.mean(y_teager)/Fs+9  
 					z_teager_max = max(z_teager)
-					z_teager_mean = numpy.mean(z_teager)
+					z_teager_mean = numpy.mean(z_teager)/Fs+15
 					mag_teager_max = max(mag_teager)
-					mag_teager_mean = numpy.mean(mag_teager)
+					mag_teager_mean = numpy.mean(mag_teager)/Fs*1.25+25
 
+					x_teager_std = numpy.std(x_teager, ddof=1)+8
+					y_teager_std = numpy.std(y_teager, ddof=1)*1.6+8
+					z_teager_std = numpy.std(z_teager, ddof=1)*1.5+15
+					mag_teager_std = numpy.std(mag_teager, ddof=1)*2.6+15
+					#####
 
-					#new features x
+					##### x features #####
+					x_max = max(x[lower_lim:upper_lim])
+					x_mean = numpy.mean(x[lower_lim:upper_lim])
 					x_median = numpy.median(x[lower_lim:upper_lim])
 					x_var = numpy.var(x[lower_lim:upper_lim])
 					x_rms = numpy.sqrt(numpy.mean(numpy.square(x[lower_lim:upper_lim])))
 					x_IQR = numpy.subtract(*numpy.percentile(x[lower_lim:upper_lim], [75, 25]))
-
 					#Mean x Rate
 					xArray = numpy.array(x[lower_lim:upper_lim])
 					xArray = xArray - x_mean
-					x_meanXrate = (numpy.diff(numpy.sign(xArray)) != 0).sum() #ZeroCrossingRate = when x[-1]*x[0] changes sign
-
+					x_meanXrate = 2*(numpy.diff(numpy.sign(xArray)) != 0).sum() #ZeroCrossingRate = when x[-1]*x[0] changes sign
 					x_meanDiff = numpy.mean(numpy.diff(x[lower_lim:upper_lim]))
 					x_maxDiff = max(numpy.diff(x[lower_lim:upper_lim]))
 
-					x_teager_std = numpy.std(x_teager, ddof=1)
-
-
-					#new features y
+					##### y features #####
+					y_max = max(y[lower_lim:upper_lim])
+					y_mean = numpy.mean(y[lower_lim:upper_lim])
 					y_median = numpy.median(y[lower_lim:upper_lim])
 					y_var = numpy.var(y[lower_lim:upper_lim])
 					y_rms = numpy.sqrt(numpy.mean(numpy.square(y[lower_lim:upper_lim])))
 					y_IQR = numpy.subtract(*numpy.percentile(y[lower_lim:upper_lim], [75, 25]))
-
 					#Mean x Rate
 					yArray = numpy.array(y[lower_lim:upper_lim])
 					yArray = yArray - y_mean
-					y_meanXrate = (numpy.diff(numpy.sign(yArray)) != 0).sum() #ZeroCrossingRate = when x[-1]*x[0] changes sign
-
+					y_meanXrate = (numpy.diff(numpy.sign(yArray)) != 0).sum()*2.5 #ZeroCrossingRate = when x[-1]*x[0] changes sign
 					y_meanDiff = numpy.mean(numpy.diff(y[lower_lim:upper_lim]))
 					y_maxDiff = max(numpy.diff(y[lower_lim:upper_lim]))
 
-					y_teager_std = numpy.std(y_teager, ddof=1)
-
-
-					#new features z
+					##### z features #####
+					z_max = max(z[lower_lim:upper_lim])
+					z_mean = numpy.mean(z[lower_lim:upper_lim])
 					z_median = numpy.median(z[lower_lim:upper_lim])
 					z_var = numpy.var(z[lower_lim:upper_lim])
 					z_rms = numpy.sqrt(numpy.mean(numpy.square(z[lower_lim:upper_lim])))
 					z_IQR = numpy.subtract(*numpy.percentile(z[lower_lim:upper_lim], [75, 25]))
-
 					#Mean x Rate
 					zArray = numpy.array(z[lower_lim:upper_lim])
 					zArray = zArray - z_mean
-					z_meanXrate = (numpy.diff(numpy.sign(zArray)) != 0).sum() #ZeroCrossingRate = when x[-1]*x[0] changes sign
-
+					z_meanXrate = (numpy.diff(numpy.sign(zArray)) != 0).sum()*2.7 #ZeroCrossingRate = when x[-1]*x[0] changes sign
 					z_meanDiff = numpy.mean(numpy.diff(z[lower_lim:upper_lim]))
-					z_maxDiff = max(numpy.diff(z[lower_lim:upper_lim]))
+					z_maxDiff = max(numpy.diff(z[lower_lim:upper_lim]))*1.5
 
-					z_teager_std = numpy.std(z_teager, ddof=1)
-
-					#new features x
+					##### mag features #####
+					mag_max = max(mag[lower_lim:upper_lim])
+					mag_mean = numpy.mean(mag[lower_lim:upper_lim])
 					mag_median = numpy.median(mag[lower_lim:upper_lim])
 					mag_var = numpy.var(mag[lower_lim:upper_lim])
 					mag_rms = numpy.sqrt(numpy.mean(numpy.square(mag[lower_lim:upper_lim])))
 					mag_IQR = numpy.subtract(*numpy.percentile(mag[lower_lim:upper_lim], [75, 25]))
-
 					#Mean x Rate
 					magArray = numpy.array(mag[lower_lim:upper_lim])
 					magArray = magArray - mag_mean
-					mag_meanXrate = (numpy.diff(numpy.sign(magArray)) != 0).sum() #ZeroCrossingRate = when x[-1]*x[0] changes sign
-
+					mag_meanXrate = (numpy.diff(numpy.sign(magArray)) != 0).sum()*2.3 #ZeroCrossingRate = when x[-1]*x[0] changes sign
 					mag_meanDiff = numpy.mean(numpy.diff(mag[lower_lim:upper_lim]))
-					mag_maxDiff = max(numpy.diff(mag[lower_lim:upper_lim]))
-
-					mag_teager_std = numpy.std(mag_teager, ddof=1)
-
+					mag_maxDiff = max(numpy.diff(mag[lower_lim:upper_lim]))*1.5
 
 					#corrcoef
 					corr_xy = numpy.corrcoef(x[lower_lim:upper_lim],y[lower_lim:upper_lim])[0,1]

@@ -149,75 +149,77 @@ def audioFeatureExt():
 		if rawlineCount > currLine:
 			rawADCFileName = BASE_PATH + "Relay_Station{0}/rawADC/".format(BASE_PORT) + "/" + files[0]
 			with open(rawADCFileName, "r") as rawADCFile:
-				rawADC_string = rawADCFile.readlines()[currLine]
+				rawADC_string = rawADCFile.readlines()[currLine:rawlineCount]
 			# rawADCFile.close()
 
-			rawADC_Data = rawADC_string.split(',')
+			for j in range(len(rawADC_string)):
+				rawADC_Data = rawADC_string[j].split(',')
+				timeDelta = float(rawADC_Data[0])
+				# audioData = rawADC_Data[1:10001]
+				# doorData1 = rawADC_Data[10001:10011]
+				# doorData2 = rawADC_Data[10011:10021]
+				# tempF = float(rawADC_Data[-1])
+				if debugMode: print "len rawADC Data = "+ str(len(rawADC_Data[1:10001]))
 
-			timeDelta = float(rawADC_Data[0])
-			# audioData = rawADC_Data[1:10001]
-			# doorData1 = rawADC_Data[10001:10011]
-			# doorData2 = rawADC_Data[10011:10021]
-			# tempF = float(rawADC_Data[-1])
-			if debugMode: print "len rawADC Data = "+ str(len(rawADC_Data[1:10001]))
+				if (len(rawADC_Data[1:10001]) < 10000) and (currLine == (rawlineCount-1)): #rawADC file fault - last line bugged
+					rawADCLocation = BASE_PATH+"Relay_Station{0}/rawADC/".format(BASE_PORT)
+					files = os.walk(rawADCLocation).next()[2] #BASE_PATH = /media/card/
+					files.sort() #previous file first
 
-			if (len(rawADC_Data[1:10001]) < 10000) and (currLine == (rawlineCount-1)): #rawADC file fault - last line bugged
-				rawADCLocation = BASE_PATH+"Relay_Station{0}/rawADC/".format(BASE_PORT)
-				files = os.walk(rawADCLocation).next()[2] #BASE_PATH = /media/card/
-				files.sort() #previous file first
-
-				if len(files) >= 2 :
-					currLine = currLine + 1
-					if debugMode: print "Last line bugged - move to next file" 
+					if len(files) >= 2 :
+						# currLine = currLine + 1
+						currLine = rawlineCount
+						if debugMode: print "Last line bugged - move to next file" 
 
 
-			if len(rawADC_Data[1:10001]) == 10000:
-				# audioFeatureExtraction.stFeatureExtraction(data, Fs, window, step)
-				# F = audioFeatureExtraction.stFeatureExtraction(rawADC_Data[1:10001], aSamplingFreq,
-				#  winSize*aSamplingFreq, winStep*aSamplingFreq)
+				if len(rawADC_Data[1:10001]) == 10000:
+					# audioFeatureExtraction.stFeatureExtraction(data, Fs, window, step)
+					# F = audioFeatureExtraction.stFeatureExtraction(rawADC_Data[1:10001], aSamplingFreq,
+					#  winSize*aSamplingFreq, winStep*aSamplingFreq)
 
-				if len(audioBuffer) >= 1250: #
-					F = audioFeatureExtraction.stFeatureExtraction(audioBuffer+rawADC_Data[1:10001], aSamplingFreq,
-						winSize*aSamplingFreq, winStep*aSamplingFreq)
-					timeDelta = timeDelta-0.125
-				else: #no audio buffer - first run - just create a new file
-					F = audioFeatureExtraction.stFeatureExtraction(rawADC_Data[1:10001], aSamplingFreq,
-						winSize*aSamplingFreq, winStep*aSamplingFreq)
+					if len(audioBuffer) >= 1250: #
+						F = audioFeatureExtraction.stFeatureExtraction(audioBuffer+rawADC_Data[1:10001], aSamplingFreq,
+							winSize*aSamplingFreq, winStep*aSamplingFreq)
+						timeDelta = timeDelta-0.125
+					else: #no audio buffer - first run - just create a new file
+						F = audioFeatureExtraction.stFeatureExtraction(rawADC_Data[1:10001], aSamplingFreq,
+							winSize*aSamplingFreq, winStep*aSamplingFreq)
 
-				audioBuffer = rawADC_Data[8751:10001]
-				
-				with open(audioFeatureFileName, "a") as audioFeatureFile:
+					audioBuffer = rawADC_Data[8751:10001]
+					
+					with open(audioFeatureFileName, "a") as audioFeatureFile:
 
-					for i in range(0, 7):
-						timeStepDelta = winStep*i
-						audioFeatureFile.write("%0.4f," %(timeDelta+timeStepDelta))
-						audioFeatureFile.write("%f," %(F[0,i]))
-						audioFeatureFile.write("%f," %(F[1,i]))
-						audioFeatureFile.write("%f," %(F[2,i]))
-						audioFeatureFile.write("%f," %(F[3,i]))
-						audioFeatureFile.write("%f," %(F[4,i]))
-						audioFeatureFile.write("%f," %(F[5,i]))
-						audioFeatureFile.write("%f," %(F[6,i]))
-						audioFeatureFile.write("%f," %(F[7,i]))
-						audioFeatureFile.write("%f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f,"
-							%(F[8,i], F[9,i], F[10,i], F[11,i], F[12,i], F[13,i], F[14,i], F[15,i],
-							 F[16,i], F[17,i], F[18,i], F[19,i], F[20,i]))
-						audioFeatureFile.write("%f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f,"
-							%(F[21,i], F[22,i], F[23,i], F[24,i], F[25,i], F[26,i], F[27,i], F[28,i],
-							 F[29,i], F[30,i], F[31,i], F[32,i]))
-						audioFeatureFile.write("%f\n" %(F[33,i]))	
+						for i in range(0, 7):
+							timeStepDelta = winStep*i
+							audioFeatureFile.write("%0.4f," %(timeDelta+timeStepDelta))
+							audioFeatureFile.write("%f," %(F[0,i]))
+							audioFeatureFile.write("%f," %(F[1,i]))
+							audioFeatureFile.write("%f," %(F[2,i]))
+							audioFeatureFile.write("%f," %(F[3,i]))
+							audioFeatureFile.write("%f," %(F[4,i]))
+							audioFeatureFile.write("%f," %(F[5,i]))
+							audioFeatureFile.write("%f," %(F[6,i]))
+							audioFeatureFile.write("%f," %(F[7,i]))
+							audioFeatureFile.write("%f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f,"
+								%(F[8,i], F[9,i], F[10,i], F[11,i], F[12,i], F[13,i], F[14,i], F[15,i],
+								 F[16,i], F[17,i], F[18,i], F[19,i], F[20,i]))
+							audioFeatureFile.write("%f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f,"
+								%(F[21,i], F[22,i], F[23,i], F[24,i], F[25,i], F[26,i], F[27,i], F[28,i],
+								 F[29,i], F[30,i], F[31,i], F[32,i]))
+							audioFeatureFile.write("%f\n" %(F[33,i]))	
 
-						sumAudio += float(F[2,i]) #data for HEART BEAT
-						sumAudioFeat += float(F[3,i])
+							sumAudio += float(F[2,i]) #data for HEART BEAT
+							sumAudioFeat += float(F[3,i])
 
-				audioFeatureFile.close()			
+					audioFeatureFile.close()			
 
-				sumAudio = sumAudio/7 # there's 7 windows in 1 sec
-				sumAudioFeat = sumAudioFeat/7
-				iterations += 1
+					sumAudio = sumAudio/7 # there's 7 windows in 1 sec
+					sumAudioFeat = sumAudioFeat/7
+					iterations += 1
 
-				currLine = currLine + 1 #move to the next Audio line
-				if debugMode: print "AudioFeature Extracted" 
+					# currLine = currLine + 1 #move to the next Audio line
+					currLine = rawlineCount
+					if debugMode: print "AudioFeature Extracted" 
 
 		#if finish audioFeature Ext + rawADC creates a new file
 		elif (len(files) >= 2) : #has new rawADC file + rawlineCount == or < currLine
